@@ -1,0 +1,148 @@
+# Instalando pacotes ---------------------------------
+install.packages("janitor")
+install.packages("tidyverse")
+
+# Ativando pacotes------------------------------------
+library(tidyverse)
+library(janitor)
+
+
+
+# importando dados do github (csv)--------------------------------
+
+
+url <- "https://raw.githubusercontent.com/drewmelo/cursoR/refs/heads/master/projetos/mercado_trabalho_pi.csv"
+dados_projeto <- read_csv2(url) |> 
+  clean_names()
+
+
+# QUESTÃO 1: Qual é o nível de escolaridade mais frequente?
+# Criando a tabela de contagem e porcentagem
+
+tabela_frequencia <- dados_projeto |> 
+  drop_na(nivel_instrucao) |>
+  count(nivel_instrucao) |> 
+  mutate(Porcentagem = (n / sum(n)) * 100)
+
+#grafico 
+  ggplot(tabela_frequencia, aes(nivel_instrucao, Porcentagem)) +
+  geom_col(fill = "steelblue", color = "black")+
+    labs(
+      title = "Porcentagem do Nível de Instrução no Piauí",
+      x = "Nível de Instrução",
+      y = "Porcentagem (%)"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+glimpse(tabela_frequencia)
+
+# -------------------------------------------------------------------------
+
+
+# QUESTÃO 2: Como a renda média e mediana variam entre os níveis de instrução?
+# Agrupando os dados para calcular média e mediana
+tabela_renda <- dados_projeto |>
+  drop_na(nivel_instrucao, renda) |> 
+  group_by(nivel_instrucao) |> 
+  summarise(
+    renda_media = mean(renda, na.rm = T),
+    renda_mediana = median(renda, na.rm = T),
+    quantidade_trabalhadores = n()
+  )
+
+glimpse(tabela_renda)
+
+#grafico
+  ggplot(tabela_renda, aes(renda_media, nivel_instrucao)) +
+  geom_col(fill = "steelblue", color = "black") +
+  labs(
+    title = "Renda Média por Nível de Instrução no Piauí",
+    x = "Renda Média (R$)",
+    y = "Nível de Instrução"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(tabela_renda)
+
+
+# QUESTÃO 3: A renda tende a aumentar conforme crescem os anos de estudo?
+# Calculando a média de renda para cada ano de estudo numérico
+
+renda_anos <- dados_projeto |> 
+  drop_na(anos_estudo_num, renda) |>
+  group_by(anos_estudo_num) |> 
+  summarise(renda_media = mean(renda, na.rm = TRUE))
+
+# grafico 
+  ggplot(renda_anos, aes(anos_estudo_num, renda_media)) +
+  geom_point() +
+  labs(
+    title = "Evolução da Renda Média por Anos de Estudo",
+    x = "Anos de Estudos",
+    y = "Renda Média (R$)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# -------------------------------------------------------------------------
+
+
+# QUESTÃO 4: renda média por nível de instrução e sexo
+
+
+Tabela_geral <- dados_projeto |> 
+  drop_na(nivel_instrucao, renda) |> 
+  group_by(nivel_instrucao) |> 
+  summarise(
+    Renda_Media_Geral = mean(renda, na.rm = TRUE)
+  )
+
+# tabela com separacao de sexo
+tabela_sexo <- dados_projeto |> 
+  drop_na(nivel_instrucao, renda, sexo) |>
+  group_by(nivel_instrucao, sexo) |> 
+  summarise(
+    renda_media = mean(renda, na.rm = TRUE)
+  ) |> 
+  pivot_wider(
+    names_from = sexo,        
+    values_from = renda_media
+  )
+
+tabela_final.s <- left_join(Tabela_geral, tabela_sexo, by = "nivel_instrucao")
+
+# -------------------------------------------------------------------------
+view(dados_projeto)
+
+tabela_raca <- dados_projeto |> 
+  drop_na(cor_raca, renda) |> 
+  group_by(cor_raca) |> 
+  summarise(
+    quantidade = n(),
+    renda_media = mean(renda),
+    renda_mediana = median(renda)
+  ) 
+# Grafico
+  ggplot(tabela_raca, aes(cor_raca, renda_media))+
+  geom_col(fill = "steelblue", color = "black") +
+    labs(
+      title = "Evolução da Renda Média por Cor de Pele",
+      x = "Cor da Raça",
+      y = "Renda Média (R$)"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ 
+  #Grafico mediana
+  ggplot(tabela_raca, aes(cor_raca, renda_mediana))+
+    geom_col(fill = "steelblue", color = "black")+
+    labs(
+      title = "Evolução da Renda Média por Cor de Pele",
+      x = "Cor da Raça",
+      y = "Renda Mediana (R$)"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
